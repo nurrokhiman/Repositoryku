@@ -40,6 +40,8 @@ th{background:#eaf0f6;color:var(--ink);white-space:nowrap}
 .f{margin-bottom:10px}.f label{display:block;font-size:13px;color:var(--mut);margin-bottom:3px}
 #toast{position:fixed;bottom:18px;right:18px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:10}
 .mode{font-size:12px;margin:12px 8px 0;color:#9fb6d0}
+.me{margin:12px 8px 6px;font-size:14px;color:#fff}.me small{display:block;color:#9fb6d0;font-size:12px}
+.lg{max-width:380px;margin:10vh auto;padding:0 16px;width:100%}.lg .card{padding:22px}.sec{margin:16px 0 6px;font-size:15px;color:var(--ink);border-bottom:2px solid var(--acc);padding-bottom:3px}.err{color:var(--bad);font-size:13px;min-height:20px}
 .lap h3{color:var(--ink);border-bottom:2px solid var(--acc);padding-bottom:3px;margin:18px 0 8px;font-size:16px}
 @media(max-width:800px){body{display:block}nav{width:auto;height:auto;position:static;display:flex;flex-wrap:wrap;gap:2px}nav h1{width:100%}nav hr,.mode{display:none}main{padding:14px}}
 @media print{nav,.bar,button,#toast{display:none!important}body{display:block;background:#fff}main{padding:0}.card{border:0;padding:0}}
@@ -54,31 +56,43 @@ th{background:#eaf0f6;color:var(--ink);white-space:nowrap}
 /* ---------- Definisi modul: [kunci, label, tipe, opsi] tipe: t=teks d=tanggal a=area g=guru s=skor 1-4 l=pilihan ---------- */
 const SK=[['1','1 - Kurang'],['2','2 - Cukup'],['3','3 - Baik'],['4','4 - Sangat baik']];
 const S=(k,l)=>[k,l,'s'];
+const SA=[['1','1 - Tidak ada'],['2','2 - Ada, belum lengkap'],['3','3 - Lengkap'],['4','4 - Lengkap & berkualitas']];
+const A=(k,l)=>[k,l,'s',SA],H=l=>['_h'+l[0],l,'h'];
 const M={
  program:{t:'Perencanaan Program',d:'Rencana program supervisi akademik per tahun ajaran.',f:[['tahun','Tahun ajaran','t'],['semester','Semester','l',['Ganjil','Genap']],['tujuan','Tujuan supervisi','a'],['sasaran','Sasaran','a'],['teknik','Teknik supervisi','l',['Kunjungan kelas','Pemeriksaan dokumen','Supervisi kelompok','Kunjungan informal','Teman sejawat']],['waktu','Waktu pelaksanaan','t'],['pj','Penanggung jawab','t']]},
  guru:{t:'Data Guru & Tendik',d:'Pendataan guru dan tenaga pendidik.',f:[['nama','Nama lengkap','t'],['nip','NIP / NUPTK','t'],['jenjang','Jenjang','l',['SD','SMP','SMA','SMK']],['mapel','Mata pelajaran / tugas','t'],['kelas','Kelas diampu','t'],['status','Status','l',['PNS','PPPK','GTY','GTT/Honorer','Tendik']],['jabatan','Jabatan / golongan','t']]},
  jadwal:{t:'Jadwal Supervisi',d:'Penyusunan jadwal supervisi per guru.',f:[['guru','Guru','g'],['tanggal','Tanggal','d'],['jam','Jam / jam ke-','t'],['kelas','Kelas','t'],['jenis','Jenis supervisi','l',['Administrasi','Observasi kelas','Asesmen','Pembinaan']],['supervisor','Supervisor','t'],['status','Status','l',['Terjadwal','Selesai','Ditunda']]]},
- adm:{t:'Pemeriksaan Administrasi',d:'Kelengkapan dan kualitas perangkat pembelajaran.',f:[['guru','Guru','g'],['tanggal','Tanggal','d'],S('cp','Capaian/Tujuan pembelajaran & ATP'),S('prota','Prota & Promes'),S('modul','Modul ajar / RPP'),S('bahan','Bahan ajar & media'),S('asesmen','Rencana asesmen & KKTP'),S('nilai','Daftar nilai & analisis'),S('jurnal','Jurnal & daftar hadir'),['catatan','Catatan','a']]},
+ adm:{t:'Pemeriksaan Administrasi Guru Kelas',d:'Kelengkapan dan kualitas administrasi guru kelas. Skala: 1 tidak ada, 2 ada tetapi belum lengkap, 3 lengkap, 4 lengkap dan berkualitas.',f:[['guru','Guru','g'],['tanggal','Tanggal','d'],['kelas','Kelas','t'],
+  H('A. Dokumen perencanaan pembelajaran'),A('kaldik','Kalender pendidikan & hari efektif belajar'),A('cp','Capaian pembelajaran (CP)'),A('atp','Tujuan pembelajaran & alur tujuan pembelajaran (ATP)'),A('prota','Program tahunan (Prota)'),A('promes','Program semester (Promes)'),A('modul','Modul ajar / RPP'),A('kktp','Kriteria ketercapaian tujuan pembelajaran (KKTP)'),A('jadwal','Jadwal pelajaran'),A('p5','Modul projek penguatan profil pelajar Pancasila (P5)'),A('bahan','Bahan ajar & media pembelajaran'),
+  H('B. Administrasi kelas'),A('siswa','Daftar nama & data siswa'),A('hadir','Daftar hadir siswa & rekapitulasi'),A('jurnal','Jurnal / agenda mengajar'),A('piket','Jadwal piket, tata tertib & kesepakatan kelas'),A('denah','Denah tempat duduk & struktur organisasi kelas'),A('kasus','Catatan perkembangan & kasus siswa'),A('hubung','Buku penghubung / komunikasi orang tua'),A('inv','Inventaris kelas & sarana belajar'),
+  H('C. Asesmen dan penilaian'),A('adiag','Asesmen diagnostik (kognitif & non-kognitif)'),A('asesmen','Rencana & instrumen asesmen (kisi-kisi, soal, rubrik)'),A('nilai','Daftar nilai'),A('anilai','Analisis hasil asesmen'),A('remed','Program remedial & pengayaan'),A('rapor','Laporan hasil belajar (rapor) & deskripsi capaian'),
+  H('D. Pengembangan dan keprofesian'),A('lit','Program literasi & numerasi'),A('sikap','Penilaian sikap & profil pelajar Pancasila'),A('pkb','Portofolio & pengembangan keprofesian (PMM, pelatihan)'),
+  ['catatan','Catatan','a']]},
  obs:{t:'Observasi Pembelajaran',d:'Instrumen observasi pelaksanaan pembelajaran di kelas.',f:[['guru','Guru','g'],['tanggal','Tanggal','d'],['kelas','Kelas / materi','t'],S('buka','Kegiatan pendahuluan & apersepsi'),S('materi','Penguasaan materi'),S('metode','Metode & model pembelajaran'),S('media','Pemanfaatan media/TIK'),S('interaksi','Interaksi & keterlibatan siswa'),S('kelola','Pengelolaan kelas'),S('proses','Penilaian proses'),S('tutup','Penutup & refleksi'),['catatan','Temuan observasi','a']]},
  kompetensi:{t:'Kompetensi Guru',d:'Penilaian kompetensi pedagogik dan profesional.',f:[['guru','Guru','g'],['tanggal','Tanggal','d'],S('p1','Pedagogik: memahami karakteristik peserta didik'),S('p2','Pedagogik: merancang pembelajaran'),S('p3','Pedagogik: melaksanakan pembelajaran'),S('p4','Pedagogik: memanfaatkan teknologi'),S('p5','Pedagogik: mengembangkan potensi siswa'),S('f1','Profesional: penguasaan materi & struktur keilmuan'),S('f2','Profesional: pengembangan keprofesian berkelanjutan'),S('f3','Profesional: refleksi & inovasi praktik'),['catatan','Catatan','a']]},
  asesmen:{t:'Evaluasi Asesmen',d:'Kualitas asesmen pembelajaran yang dilakukan guru.',f:[['guru','Guru','g'],['tanggal','Tanggal','d'],S('diag','Asesmen diagnostik'),S('form','Asesmen formatif'),S('sum','Asesmen sumatif'),S('instr','Kualitas instrumen & rubrik'),S('analisis','Analisis hasil asesmen'),S('tl','Remedial & pengayaan'),S('umpan','Umpan balik ke siswa'),['catatan','Catatan','a']]},
  refleksi:{t:'Refleksi',d:'Refleksi guru dan supervisor pasca supervisi.',f:[['guru','Guru','g'],['tanggal','Tanggal','d'],['kuat','Kekuatan pembelajaran','a'],['lemah','Hal yang perlu diperbaiki','a'],['rguru','Refleksi guru','a'],['rsup','Refleksi supervisor','a'],['supervisor','Supervisor','t']]},
  rekom:{t:'Rekomendasi Perbaikan',d:'Rekomendasi hasil analisis supervisi.',f:[['guru','Guru','g'],['aspek','Aspek','l',['Administrasi','Pelaksanaan pembelajaran','Pedagogik','Profesional','Asesmen']],['temuan','Temuan','a'],['rekom','Rekomendasi','a'],['prioritas','Prioritas','l',['Tinggi','Sedang','Rendah']]]},
  rtl:{t:'Rencana Tindak Lanjut',d:'Rencana tindak lanjut pembinaan guru.',f:[['guru','Guru','g'],['kegiatan','Kegiatan tindak lanjut','a'],['bentuk','Bentuk pembinaan','l',['Pendampingan','Workshop/PKG','KKG/MGMP','Pelatihan daring','Supervisi ulang']],['target','Target selesai','d'],['pj','Penanggung jawab','t']]},
- monev:{t:'Monev Tindak Lanjut',d:'Pemantauan dan evaluasi pelaksanaan tindak lanjut.',f:[['guru','Guru','g'],['tanggal','Tanggal monev','d'],['rtl','Kegiatan yang dipantau','t'],['progres','Progres (%)','l',['0','25','50','75','100']],['hasil','Hasil / dampak','a'],['status','Status','l',['Belum mulai','Berjalan','Selesai','Terkendala']]]}
+ monev:{t:'Monev Tindak Lanjut',d:'Pemantauan dan evaluasi pelaksanaan tindak lanjut.',f:[['guru','Guru','g'],['tanggal','Tanggal monev','d'],['rtl','Kegiatan yang dipantau','t'],['progres','Progres (%)','l',['0','25','50','75','100']],['hasil','Hasil / dampak','a'],['status','Status','l',['Belum mulai','Berjalan','Selesai','Terkendala']]]},
+ pengguna:{t:'Pengguna & Hak Akses',d:'Kelola akun. Admin: semua akses. Supervisor: kelola semua data supervisi. Guru: hanya melihat data sendiri dan mengisi refleksi.',f:[['username','Username','t'],['nama','Nama lengkap','t'],['peran','Peran','l',[['admin','Admin'],['supervisor','Supervisor / kepala sekolah'],['guru','Guru']]],['guru','Tautkan ke data guru (wajib untuk peran Guru)','g'],['sandi','Sandi (kosongkan jika tidak diubah)','p']]}
 };
-const KEYS=Object.keys(M),SC=['adm','obs','kompetensi','asesmen'];
+const KEYS=Object.keys(M).filter(k=>k!=='pengguna'),SC=['adm','obs','kompetensi','asesmen'];
+const PERAN={admin:'Admin',supervisor:'Supervisor',guru:'Guru'};
 const D={},$=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const cols=k=>M[k].f.map(x=>x[0]);
+const cols=k=>M[k].f.filter(x=>x[2]!=='h').map(x=>x[0]);
 const sf=k=>M[k].f.filter(x=>x[2]==='s');
 const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)};
 
 /* ---------- Lapisan data: Google Sheets (Apps Script) atau mode demo (localStorage) ---------- */
 const GAS=typeof google!=='undefined'&&google.script&&google.script.run;
+let TOKEN='',ME=null;
+const srv=(fn,...a)=>new Promise((ok,no)=>google.script.run.withSuccessHandler(ok).withFailureHandler(e=>{
+ if(/SESI/.test(e.message||e)){TOKEN='';ME=null;try{sessionStorage.removeItem('sisupak_t')}catch(x){}authView(false,'Sesi berakhir. Silakan masuk lagi.')}no(e)})[fn](...a));
 function call(act,k,row){
  return new Promise((ok,no)=>{
-  if(GAS)return google.script.run.withSuccessHandler(ok).withFailureHandler(e=>no(e)).api(act,k,cols(k),row||{});
+  if(GAS){const p=k==='pengguna'?(act==='list'?srv('userList',TOKEN):act==='save'?srv('userSave',TOKEN,row):srv('userDel',TOKEN,row)):srv('api',TOKEN,act,k,cols(k),row||{});return p.then(ok,no)}
   let a=[];try{a=JSON.parse(localStorage.getItem('sisupak_'+k)||'[]')}catch(e){}
   if(act==='save'){row.id=row.id||Math.random().toString(36).slice(2,10);const i=a.findIndex(r=>r.id===row.id);i>-1?a[i]=row:a.push(row)}
   if(act==='del')a=a.filter(r=>r.id!==row.id);
@@ -87,8 +101,9 @@ function call(act,k,row){
  });
 }
 async function load(){
- const r=await Promise.all(KEYS.map(k=>call('list',k)));
- KEYS.forEach((k,i)=>D[k]=r[i]);
+ const ks=ME.peran==='admin'?[...KEYS,'pengguna']:KEYS;
+ const r=await Promise.all(ks.map(k=>call('list',k)));
+ ks.forEach((k,i)=>D[k]=r[i]);
 }
 
 /* ---------- Perhitungan ---------- */
@@ -107,24 +122,24 @@ function nilaiGuru(nama){
 /* ---------- Navigasi ---------- */
 let cur='dash',q='';
 function nav(){
- $('#nav').innerHTML=`<h1>Sistem Informasi Supervisi Akademik Sekolah<small>SD · SMP · SMA/SMK</small></h1>
- <a data-v="dash">Analisis hasil supervisi</a><hr>`+KEYS.map(k=>`<a data-v="${k}">${M[k].t}</a>`).join('')+`<hr><a data-v="laporan">Laporan supervisi</a>
+ $('#nav').style.display='';$('#nav').innerHTML=`<h1>Sistem Informasi Supervisi Akademik Sekolah<small>SD · SMP · SMA/SMK</small></h1>
+ <a data-v="dash">Analisis hasil supervisi</a><hr>`+KEYS.map(k=>`<a data-v="${k}">${M[k].t}</a>`).join('')+`<hr><a data-v="laporan">Laporan supervisi</a>`+(ME.peran==='admin'?`<a data-v="pengguna">${M.pengguna.t}</a>`:'')+`<hr><div class="me">${esc(ME.nama)}<small>${PERAN[ME.peran]}</small></div><a data-v="sandi">Ubah sandi</a><a data-v="keluar">Keluar</a>
  <div class="mode">${GAS?'Terhubung ke Google Sheets':'Mode demo (data di peramban)'}</div>`;
- document.querySelectorAll('nav a').forEach(a=>{a.classList.toggle('on',a.dataset.v===cur);a.onclick=()=>{cur=a.dataset.v;q='';render()}});
+ document.querySelectorAll('nav a').forEach(a=>{a.classList.toggle('on',a.dataset.v===cur);a.onclick=()=>{const v=a.dataset.v;if(v==='keluar')return logout();if(v==='sandi')return pwForm();cur=v;q='';render()}});
 }
 function render(){nav();cur==='dash'?dash():cur==='laporan'?laporan():table(cur);scrollTo(0,0)}
 
 /* ---------- Tabel CRUD ---------- */
 function table(k){
- const m=M[k],show=m.f.filter(x=>x[2]!=='a'&&x[2]!=='s').slice(0,5),isS=sf(k).length>0;
+ const m=M[k],canE=ME.peran!=='guru'||k==='refleksi',canD=ME.peran!=='guru',show=m.f.filter(x=>!'asph'.includes(x[2])).slice(0,5),isS=sf(k).length>0;
  const rows=D[k].filter(r=>JSON.stringify(Object.values(r)).toLowerCase().includes(q.toLowerCase()));
  $('#main').innerHTML=`<h2>${m.t}</h2><p class="sub">${m.d}</p><div class="card">
- <div class="bar"><input id="q" placeholder="Cari…" value="${esc(q)}"><button id="add">Tambah data</button></div>
+ <div class="bar"><input id="q" placeholder="Cari…" value="${esc(q)}">${canE?'<button id="add">Tambah data</button>':''}</div>
  <div class="tw"><table><thead><tr>${show.map(x=>`<th>${x[1]}</th>`).join('')}${isS?'<th>Skor</th><th>Predikat</th>':''}<th></th></tr></thead><tbody>
- ${rows.map(r=>`<tr>${show.map(x=>`<td>${esc(r[x[0]])}</td>`).join('')}${isS?`<td>${fmt(pct(r,k))}</td><td>${pill(pct(r,k))}</td>`:''}<td style="white-space:nowrap"><button class="s g" data-e="${r.id}">Ubah</button> <button class="s d" data-x="${r.id}">Hapus</button></td></tr>`).join('')||`<tr><td colspan="9">Belum ada data. Klik “Tambah data” untuk memulai.</td></tr>`}
+ ${rows.map(r=>`<tr>${show.map(x=>`<td>${esc(r[x[0]])}</td>`).join('')}${isS?`<td>${fmt(pct(r,k))}</td><td>${pill(pct(r,k))}</td>`:''}<td style="white-space:nowrap">${canE?`<button class="s g" data-e="${r.id}">Ubah</button>`:''} ${canD?`<button class="s d" data-x="${r.id}">Hapus</button>`:''}</td></tr>`).join('')||`<tr><td colspan="9">Belum ada data.${canE?' Klik “Tambah data” untuk memulai.':''}</td></tr>`}
  </tbody></table></div></div>`;
  $('#q').oninput=e=>{q=e.target.value;table(k);const i=$('#q');i.focus();i.setSelectionRange(q.length,q.length)};
- $('#add').onclick=()=>form(k);
+ if(canE)$('#add').onclick=()=>form(k);
  document.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>form(k,D[k].find(r=>r.id===b.dataset.e)));
  document.querySelectorAll('[data-x]').forEach(b=>b.onclick=async()=>{if(!confirm('Hapus data ini?'))return;await call('del',k,{id:b.dataset.x});D[k]=D[k].filter(r=>r.id!==b.dataset.x);toast('Data dihapus');table(k)});
 }
@@ -134,16 +149,21 @@ function form(k,r={}){
   return t==='a'?`<textarea name="${n}" rows="3">${esc(v)}</textarea>`
    :t==='d'?`<input type="date" name="${n}" value="${esc(v)}">`
    :t==='l'?`<select name="${n}"><option value="">- pilih -</option>${opt(o,v)}</select>`
-   :t==='g'?`<select name="${n}" required><option value="">- pilih guru -</option>${opt(D.guru.map(g=>g.nama),v)}</select>`
-   :t==='s'?`<select name="${n}"><option value="">- belum dinilai -</option>${opt(SK,v)}</select>`
+   :t==='p'?`<input type="password" name="${n}" autocomplete="new-password">`:t==='g'?`<select name="${n}"${k==='pengguna'?'':' required'}><option value="">- pilih guru -</option>${opt(D.guru.map(g=>g.nama),v)}</select>`
+   :t==='s'?`<select name="${n}"><option value="">- belum dinilai -</option>${opt(o||SK,v)}</select>`
    :`<input name="${n}" value="${esc(v)}">`};
- $('#modal').innerHTML=`<form><h2>${r.id?'Ubah':'Tambah'} - ${M[k].t}</h2>${M[k].f.map(x=>`<div class="f"><label>${x[1]}</label>${inp(x)}</div>`).join('')}
+ $('#modal').innerHTML=`<form><h2>${r.id?'Ubah':'Tambah'} - ${M[k].t}</h2>${k==='adm'?`<div class="f"><label>Isi cepat semua butir dengan nilai</label><select id="qf"><option value="">- pilih nilai -</option>${opt(SA,'')}</select></div>`:''}${k==='rtl'?'<div class="f"><button type="button" class="g" id="gt">Generate otomatis dari hasil supervisi</button><div class="sub" style="margin:4px 0 0">Pilih guru. Kegiatan, bentuk pembinaan, dan target waktu disusun dari butir yang masih rendah. Hasilnya dapat disunting.</div></div>':''}${k==='rekom'?'<div class="f"><button type="button" class="g" id="gr">Generate otomatis dari hasil supervisi</button><div class="sub" style="margin:4px 0 0">Pilih guru. Jika aspek dikosongkan, aplikasi memilih aspek dengan skor terendah. Hasilnya dapat disunting.</div></div>':''}${k==='refleksi'?'<div class="f"><button type="button" class="g" id="gen">Generate otomatis dari hasil supervisi</button><div class="sub" style="margin:4px 0 0">Pilih guru, lalu draf disusun dari skor supervisinya. Draf dapat disunting sebelum disimpan.</div></div>':''}${M[k].f.map(x=>x[2]==='h'?`<h3 class="sec">${x[1]}</h3>`:`<div class="f"><label>${x[1]}</label>${inp(x)}${x[0]==='catatan'&&sf(k).length?'<button type="button" class="g s" id="gc" style="margin-top:6px">Generate catatan otomatis dari penilaian</button>':''}</div>`).join('')}
  <div class="bar"><button>Simpan</button><button type="button" class="g" id="cx">Batal</button></div></form>`;
  $('#modal').classList.add('on');$('#cx').onclick=()=>$('#modal').classList.remove('on');
+ if(k==='refleksi')$('#gen').onclick=genRef;
+ if($('#gc'))$('#gc').onclick=()=>genCat(k);
+ if(k==='adm')$('#qf').onchange=e=>{if(e.target.value)sf(k).forEach(x=>$('#modal form')[x[0]].value=e.target.value)};
+ if(k==='rekom')$('#gr').onclick=genRek;
+ if(k==='rtl')$('#gt').onclick=genRtl;
  if(k!=='guru'&&!D.guru.length&&M[k].f.some(x=>x[2]==='g'))toast('Isi Data Guru terlebih dulu');
  $('#modal form').onsubmit=async e=>{e.preventDefault();
   const row={id:r.id};new FormData(e.target).forEach((v,n)=>row[n]=v);
-  try{const id=await call('save',k,row);row.id=row.id||id;const i=D[k].findIndex(z=>z.id===row.id);i>-1?D[k][i]=row:D[k].push(row);
+  try{const id=await call('save',k,row);row.id=row.id||id;if(k==='pengguna')delete row.sandi;const i=D[k].findIndex(z=>z.id===row.id);i>-1?D[k][i]=row:D[k].push(row);
    $('#modal').classList.remove('on');toast('Data tersimpan');table(k)}catch(er){alert('Gagal menyimpan: '+(er.message||er))}};
 }
 
@@ -182,7 +202,101 @@ function laporan(){
 }
 
 /* ---------- Mulai ---------- */
-load().then(render).catch(e=>$('#main').innerHTML='<div class="card">Gagal memuat data: '+esc(e.message||e)+'</div>');
+const REK={kaldik:'Susun kalender pendidikan dan hitung hari efektif belajar',atp:'Susun tujuan pembelajaran dan alur tujuan pembelajaran (ATP) yang runtut',promes:'Lengkapi program semester sesuai program tahunan',kktp:'Tetapkan KKTP untuk setiap tujuan pembelajaran',jadwal:'Susun jadwal pelajaran sesuai alokasi waktu kurikulum',p5:'Susun modul projek penguatan profil pelajar Pancasila',siswa:'Lengkapi dan perbarui data siswa',hadir:'Isi daftar hadir siswa setiap hari dan rekap setiap bulan',piket:'Susun jadwal piket, tata tertib, dan kesepakatan kelas bersama siswa',denah:'Buat denah tempat duduk dan struktur organisasi kelas',kasus:'Catat perkembangan dan kasus siswa secara berkala',hubung:'Gunakan buku penghubung untuk komunikasi rutin dengan orang tua',inv:'Lengkapi inventaris kelas dan sarana belajar',adiag:'Siapkan instrumen asesmen diagnostik kognitif dan non-kognitif',anilai:'Analisis hasil asesmen dan dokumentasikan tindak lanjutnya',remed:'Susun program remedial dan pengayaan berdasarkan hasil asesmen',rapor:'Lengkapi laporan hasil belajar dengan deskripsi capaian yang bermakna',lit:'Susun program literasi dan numerasi kelas',sikap:'Lakukan penilaian sikap dan profil pelajar Pancasila secara terdokumentasi',pkb:'Lengkapi portofolio dan dokumentasi pengembangan keprofesian (misalnya PMM)',cp:'Susun ulang capaian dan tujuan pembelajaran serta alur tujuan pembelajaran (ATP) sesuai kurikulum yang berlaku',prota:'Lengkapi program tahunan dan semester sesuai kalender pendidikan',modul:'Lengkapi modul ajar/RPP dengan tujuan, kegiatan, dan asesmen yang selaras',bahan:'Siapkan bahan ajar dan media yang bervariasi dan kontekstual',asesmen:'Susun rencana asesmen dan kriteria ketercapaian tujuan pembelajaran (KKTP)',nilai:'Rapikan daftar nilai dan analisis hasil belajar secara berkala',jurnal:'Isi jurnal mengajar dan daftar hadir secara tertib setiap pertemuan',buka:'Rancang kegiatan pendahuluan yang memotivasi dan menghubungkan materi dengan pengalaman siswa',materi:'Perdalam penguasaan materi melalui KKG/MGMP dan sumber belajar terkini',metode:'Terapkan model pembelajaran yang bervariasi, misalnya berbasis proyek atau masalah',media:'Manfaatkan media dan teknologi pembelajaran secara tepat',interaksi:'Tingkatkan keterlibatan siswa lewat diskusi, tanya jawab, dan kerja kelompok',kelola:'Perbaiki pengelolaan kelas, termasuk pengaturan waktu dan tata tertib',proses:'Gunakan penilaian proses selama pembelajaran dan beri umpan balik langsung',tutup:'Akhiri pembelajaran dengan refleksi, simpulan bersama, dan tindak lanjut',p1:'Lakukan pemetaan karakteristik dan gaya belajar siswa',p2:'Ikuti pendampingan perancangan pembelajaran berdiferensiasi',p3:'Lakukan pendampingan dan observasi ulang pada pelaksanaan pembelajaran',p4:'Ikuti pelatihan pemanfaatan teknologi dalam pembelajaran',p5:'Rancang kegiatan yang mengembangkan potensi dan minat siswa',f1:'Perkuat penguasaan materi dan struktur keilmuan mata pelajaran',f2:'Ikuti kegiatan pengembangan keprofesian berkelanjutan secara rutin',f3:'Lakukan refleksi praktik mengajar dan coba inovasi pembelajaran',diag:'Lakukan asesmen diagnostik di awal pembelajaran untuk memetakan kemampuan siswa',form:'Tambah asesmen formatif yang beragam selama proses belajar',sum:'Perbaiki perancangan dan pelaksanaan asesmen sumatif',instr:'Perbaiki kualitas instrumen dan rubrik penilaian',analisis:'Analisis hasil asesmen untuk menentukan langkah pembelajaran berikutnya',tl:'Laksanakan remedial dan pengayaan berdasarkan hasil asesmen',umpan:'Berikan umpan balik yang jelas dan tepat waktu kepada siswa'};
+const ASP={'Administrasi':['adm'],'Pelaksanaan pembelajaran':['obs'],'Pedagogik':['kompetensi','Pedagogik'],'Profesional':['kompetensi','Profesional'],'Asesmen':['asesmen']};
+function aspItems(nm,asp){
+ const[mod,pre]=ASP[asp],out=[];
+ sf(mod).filter(x=>!pre||x[1].startsWith(pre)).forEach(x=>{const v=D[mod].filter(r=>r.guru===nm).map(r=>+r[x[0]]).filter(n=>n>0);if(v.length)out.push({k:x[0],l:x[1],a:v.reduce((a,b)=>a+b,0)/v.length})});
+ return out;
+}
+function genRek(){
+ const f=$('#modal form'),nm=f.guru.value;
+ if(!nm)return toast('Pilih guru terlebih dulu');
+ let asp=f.aspek.value;const all=Object.keys(ASP).map(a=>({a,it:aspItems(nm,a)})).filter(x=>x.it.length);
+ if(!all.length)return toast('Belum ada hasil supervisi untuk guru ini');
+ const sc=it=>it.reduce((a,x)=>a+x.a,0)/it.length;
+ if(!asp)asp=all.sort((x,y)=>sc(x.it)-sc(y.it))[0].a;
+ const it=aspItems(nm,asp);if(!it.length)return toast('Belum ada penilaian untuk aspek '+asp);
+ if((f.temuan.value.trim()||f.rekom.value.trim())&&!confirm('Isi temuan dan rekomendasi yang ada akan diganti. Lanjutkan?'))return;
+ const p=sc(it)/4*100,lo=[...it].sort((a,b)=>a.a-b.a).filter(x=>x.a<3).slice(0,4);
+ const sh=x=>{const l=x.l.includes(': ')?x.l.split(': ')[1]:x.l;return l[0].toLowerCase()+l.slice(1)+' (skor '+x.a.toFixed(1)+')'};
+ f.aspek.value=asp;
+ f.temuan.value=`Pada aspek ${asp.toLowerCase()}, ${nm} memperoleh skor ${p.toFixed(1)} dengan predikat ${pred(p)[0].toLowerCase()}. `+(lo.length?`Butir yang masih rendah: ${lo.map(sh).join('; ')}.`:'Seluruh butir berada pada skor baik.');
+ f.rekom.value=lo.length?lo.map((x,i)=>`${i+1}. ${REK[x.k]||'Lakukan pembinaan pada butir ini'}.`).join('\n')+'\nLakukan supervisi ulang setelah perbaikan untuk memantau perkembangan.':'Pertahankan kualitas yang sudah baik dan bagikan praktik baik kepada rekan guru melalui KKG/MGMP.';
+ f.prioritas.value=!lo.length?'Rendah':p<56?'Tinggi':p<71?'Sedang':'Rendah';
+ toast('Rekomendasi dibuat. Silakan sunting bila perlu.');
+}
+function genRtl(){
+ const f=$('#modal form'),nm=f.guru.value;
+ if(!nm)return toast('Pilih guru terlebih dulu');
+ const all=[];Object.keys(ASP).forEach(a=>aspItems(nm,a).forEach(x=>all.push({...x,asp:a})));
+ if(!all.length)return toast('Belum ada hasil supervisi untuk guru ini');
+ if(f.kegiatan.value.trim()&&!confirm('Isi kegiatan yang ada akan diganti. Lanjutkan?'))return;
+ const p=all.reduce((a,x)=>a+x.a,0)/all.length/4*100,lo=[...all].sort((a,b)=>a.a-b.a).filter(x=>x.a<3).slice(0,4);
+ const B={'Administrasi':'Pendampingan','Pelaksanaan pembelajaran':'Pendampingan','Pedagogik':'Workshop/PKG','Profesional':'KKG/MGMP','Asesmen':'Workshop/PKG'};
+ f.kegiatan.value=lo.length?lo.map((x,i)=>`${i+1}. ${REK[x.k]||'Lakukan pembinaan pada butir ini'}.`).join('\n')+'\nLakukan supervisi ulang untuk memastikan perbaikan.':'Pertahankan kualitas pembelajaran dan bagikan praktik baik kepada rekan guru melalui KKG/MGMP.';
+ f.bentuk.value=lo.length?B[lo[0].asp]:'KKG/MGMP';
+ const d=new Date();d.setDate(d.getDate()+(!lo.length?60:p<56?14:p<71?30:60));
+ f.target.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ if(!f.pj.value.trim()&&ME.peran!=='guru')f.pj.value=ME.nama;
+ toast('Rencana tindak lanjut dibuat. Silakan sunting bila perlu.');
+}
+function genCat(k){
+ const f=$('#modal form'),it=sf(k).map(x=>({l:x[1],v:+f[x[0]].value})),ok=it.filter(x=>x.v>0);
+ if(!ok.length)return toast('Isi penilaian terlebih dulu');
+ if(f.catatan.value.trim()&&!confirm('Catatan yang ada akan diganti. Lanjutkan?'))return;
+ const p=ok.reduce((a,x)=>a+x.v,0)/(ok.length*4)*100;
+ const hi=ok.filter(x=>x.v>=3).sort((a,b)=>b.v-a.v).slice(0,3),lo=ok.filter(x=>x.v<=2).sort((a,b)=>a.v-b.v).slice(0,4);
+ const sh=a=>a.map(x=>{const l=x.l.includes(': ')?x.l.split(': ')[1]:x.l;return l[0].toLowerCase()+l.slice(1)+' (skor '+x.v+')'}).join('; ');
+ const T={adm:['administrasi pembelajaran','Lengkapi dan perbarui dokumen yang masih kurang sebelum supervisi berikutnya.'],obs:['pelaksanaan pembelajaran','Lakukan pendampingan dan observasi ulang pada aspek yang masih lemah.'],kompetensi:['kompetensi guru','Ikuti pelatihan atau diskusi KKG/MGMP pada kompetensi yang masih rendah.'],asesmen:['asesmen pembelajaran','Perbaiki instrumen serta tindak lanjut hasil asesmen (remedial dan pengayaan).']}[k];
+ f.catatan.value=`Secara umum ${T[0]} memperoleh skor ${p.toFixed(1)} dengan predikat ${pred(p)[0].toLowerCase()}. `+(hi.length?`Hal yang sudah baik: ${sh(hi)}. `:'')+(lo.length?`Hal yang perlu ditingkatkan: ${sh(lo)}. ${T[1]}`:'Tidak ditemukan aspek dengan skor rendah. Pertahankan dan kembangkan praktik yang sudah baik.')+(ok.length<it.length?` Terdapat ${it.length-ok.length} butir yang belum dinilai.`:'');
+ toast('Catatan dibuat. Silakan sunting bila perlu.');
+}
+function genRef(){
+ const f=$('#modal form'),nm=f.guru.value;
+ if(!nm)return toast('Pilih guru terlebih dulu');
+ const it=[];
+ SC.forEach(k=>sf(k).forEach(x=>{const v=D[k].filter(r=>r.guru===nm).map(r=>+r[x[0]]).filter(n=>n>0);if(v.length)it.push({l:x[1],a:v.reduce((a,b)=>a+b,0)/v.length})}));
+ if(!it.length)return toast('Belum ada hasil supervisi untuk guru ini');
+ if(['kuat','lemah','rguru','rsup'].some(n=>f[n].value.trim())&&!confirm('Isi kolom refleksi yang ada akan diganti. Lanjutkan?'))return;
+ const hi=[...it].sort((a,b)=>b.a-a.a).filter(x=>x.a>=3).slice(0,4),lo=[...it].sort((a,b)=>a.a-b.a).filter(x=>x.a<3).slice(0,4);
+ const ln=a=>a.map(x=>`- ${x.l} (skor ${x.a.toFixed(1)} dari 4)`).join('\n');
+ const sh=a=>a.slice(0,3).map(x=>{const l=x.l.includes(': ')?x.l.split(': ')[1]:x.l;return l[0].toLowerCase()+l.slice(1)}).join(', ');
+ const n=nilaiGuru(nm),pt=pred(n.total)[0].toLowerCase();
+ f.kuat.value=hi.length?ln(hi):'Belum ada indikator dengan skor baik (3 ke atas). Penguatan perlu dimulai dari dasar pembelajaran.';
+ f.lemah.value=lo.length?ln(lo):'Tidak ditemukan indikator dengan skor di bawah 3.';
+ f.rguru.value=`Setelah mengikuti supervisi, saya menyadari bahwa ${hi.length?'pembelajaran saya sudah baik pada '+sh(hi)+'.':'saya masih perlu memperkuat banyak aspek pembelajaran.'} ${lo.length?'Saya perlu meningkatkan '+sh(lo)+'. Saya akan menerapkan masukan supervisor, berdiskusi dengan rekan sejawat, dan mencoba perbaikan pada pembelajaran berikutnya.':'Saya akan mempertahankan kualitas ini dan terus berinovasi dalam pembelajaran.'}`;
+ if(ME.peran!=='guru')f.rsup.value=`Hasil supervisi menunjukkan skor akhir ${fmt(n.total)} dengan predikat ${pt}. ${hi.length?'Guru menunjukkan kekuatan pada '+sh(hi)+'. ':''}${lo.length?'Aspek yang perlu dibina: '+sh(lo)+'. Disarankan pendampingan, pelatihan terkait, dan supervisi ulang untuk memantau perbaikan.':'Guru dapat menjadi rekan berbagi praktik baik bagi guru lain.'}`;
+ toast('Draf refleksi dibuat. Silakan sunting bila perlu.');
+}
+const msgOf=e=>String(e.message||e).replace(/^(Error|Exception):\s*/,'');
+function authView(setup,msg){
+ $('#nav').style.display='none';$('#modal').classList.remove('on');
+ $('#main').innerHTML=`<div class="lg"><div class="card"><h2>Sistem Informasi Supervisi Akademik Sekolah</h2><p class="sub">${setup?'Buat akun admin pertama untuk memulai.':'Masuk untuk melanjutkan.'}</p>
+ <form id="af">${setup?'<div class="f"><label>Nama lengkap</label><input name="nama" required></div>':''}<div class="f"><label>Username</label><input name="u" autocomplete="username" required></div>
+ <div class="f"><label>Sandi${setup?' (minimal 6 karakter)':''}</label><input type="password" name="p" autocomplete="${setup?'new-password':'current-password'}" required></div>
+ <div class="err" id="er">${esc(msg||'')}</div><button style="width:100%">${setup?'Buat akun dan masuk':'Masuk'}</button></form></div></div>`;
+ $('#af').onsubmit=async e=>{e.preventDefault();const f=e.target,b=f.querySelector('button');b.disabled=true;
+  try{start(setup?await srv('setup',f.nama.value,f.u.value,f.p.value):await srv('login',f.u.value,f.p.value))}
+  catch(er){b.disabled=false;$('#er').textContent=msgOf(er)}};
+}
+async function start(r){
+ TOKEN=r.token;ME=r.me;try{sessionStorage.setItem('sisupak_t',TOKEN)}catch(x){}
+ $('#main').innerHTML='<p>Memuat data…</p>';
+ try{await load();cur='dash';render()}catch(e){$('#main').innerHTML='<div class="card">Gagal memuat data: '+esc(msgOf(e))+'</div>'}
+}
+async function logout(){try{await srv('logout',TOKEN)}catch(e){}TOKEN='';ME=null;try{sessionStorage.removeItem('sisupak_t')}catch(x){}authView(false)}
+function pwForm(){
+ $('#modal').innerHTML=`<form><h2>Ubah sandi</h2><div class="f"><label>Sandi lama</label><input type="password" name="o" required></div><div class="f"><label>Sandi baru (minimal 6 karakter)</label><input type="password" name="n" required></div><div class="bar"><button>Simpan sandi</button><button type="button" class="g" id="cx">Batal</button></div></form>`;
+ $('#modal').classList.add('on');$('#cx').onclick=()=>$('#modal').classList.remove('on');
+ $('#modal form').onsubmit=async e=>{e.preventDefault();try{await srv('changePw',TOKEN,e.target.o.value,e.target.n.value);$('#modal').classList.remove('on');toast('Sandi diubah')}catch(er){alert(msgOf(er))}};
+}
+(async()=>{
+ if(!GAS)return start({token:'demo',me:{nama:'Pengguna demo',peran:'admin',username:'demo',guru:''}});
+ let t='';try{t=sessionStorage.getItem('sisupak_t')||''}catch(x){}
+ try{const s=await srv('status',t);s.setup?authView(true):s.me?start({token:t,me:s.me}):authView(false)}
+ catch(e){$('#main').innerHTML='<div class="card">Gagal terhubung: '+esc(msgOf(e))+'</div>'}
+})();
 </script>
 </body>
 </html>
