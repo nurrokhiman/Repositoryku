@@ -41,24 +41,29 @@ th{background:#eaf0f6;color:var(--ink);white-space:nowrap}
 #toast{position:fixed;bottom:18px;right:18px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:10}
 .mode{font-size:12px;margin:12px 8px 0;color:#9fb6d0}
 .me{margin:12px 8px 6px;font-size:14px;color:#fff}.me small{display:block;color:#9fb6d0;font-size:12px}
-.lg{max-width:380px;margin:10vh auto;padding:0 16px;width:100%}.lg .card{padding:22px}.sec{margin:16px 0 6px;font-size:15px;color:var(--ink);border-bottom:2px solid var(--acc);padding-bottom:3px}.err{color:var(--bad);font-size:13px;min-height:20px}
+.lg{max-width:380px;margin:10vh auto;padding:0 16px;width:100%}.lg .card{padding:22px}.sec{margin:16px 0 6px;font-size:15px;color:var(--ink);border-bottom:2px solid var(--acc);padding-bottom:3px}nav select{width:100%;margin-top:4px;padding:6px 8px;font-size:13px}.err{color:var(--bad);font-size:13px;min-height:20px}
 .lap h3{color:var(--ink);border-bottom:2px solid var(--acc);padding-bottom:3px;margin:18px 0 8px;font-size:16px}
 @media(max-width:800px){body{display:block}nav{width:auto;height:auto;position:static;display:flex;flex-wrap:wrap;gap:2px}nav h1{width:100%}nav hr,.mode{display:none}main{padding:14px}}
 @media print{nav,.bar,button,#toast{display:none!important}body{display:block;background:#fff}main{padding:0}.card{border:0;padding:0}}
 </style>
 </head>
 <body>
-<nav id="nav"></nav>
+<nav id="nav" style="display:none"></nav>
 <main id="main"><p>Memuat data…</p></main>
 <div id="modal"></div><div id="toast"></div>
 
 <script>
+const BUILD='v18-14nov2026';
+const showErr=m=>{const e=document.querySelector('#main');if(e&&/Memuat/.test(e.innerHTML)){document.querySelector('#nav').style.display='none';e.innerHTML='<div class="card"><b>Aplikasi tidak dapat dimulai.</b><br>'+String(m).replace(/</g,'&lt;')+'<br><small>Build '+BUILD+'. Kirim pesan ini ke pengembang.</small></div>'}};
+window.addEventListener('error',e=>showErr(e.message+' (baris '+e.lineno+')'));
+window.addEventListener('unhandledrejection',e=>showErr((e.reason&&e.reason.message)||e.reason));
 /* ---------- Definisi modul: [kunci, label, tipe, opsi] tipe: t=teks d=tanggal a=area g=guru s=skor 1-4 l=pilihan ---------- */
 const SK=[['1','1 - Kurang'],['2','2 - Cukup'],['3','3 - Baik'],['4','4 - Sangat baik']];
 const S=(k,l)=>[k,l,'s'];
 const SA=[['1','1 - Tidak ada'],['2','2 - Ada, belum lengkap'],['3','3 - Lengkap'],['4','4 - Lengkap & berkualitas']];
 const A=(k,l)=>[k,l,'s',SA],H=l=>['_h'+l[0],l,'h'];
 const M={
+ sekolah:{t:'Identitas Sekolah',d:'Data sekolah dan kepala sekolah. Terisi otomatis pada laporan dan program supervisi. Hanya admin yang dapat mengubah.',f:[['nama','Nama sekolah','t'],['npsn','NPSN','t'],['jenjang','Jenjang','l',['SD/MI','SMP/MTs','SMA/MA','SMK']],['alamat','Alamat','t'],['tahun','Tahun ajaran aktif','t'],['kepsek','Nama kepala sekolah','t'],['nipkepsek','NIP kepala sekolah','t']]},
  program:{t:'Perencanaan Program',d:'Rencana program supervisi akademik per tahun ajaran.',f:[['tahun','Tahun ajaran','t'],['semester','Semester','l',['Ganjil','Genap']],['tujuan','Tujuan supervisi','a'],['sasaran','Sasaran','a'],['teknik','Teknik supervisi','l',['Kunjungan kelas','Pemeriksaan dokumen','Supervisi kelompok','Kunjungan informal','Teman sejawat']],['waktu','Waktu pelaksanaan','t'],['pj','Penanggung jawab','t']]},
  guru:{t:'Data Guru & Tendik',d:'Pendataan guru dan tenaga pendidik.',f:[['nama','Nama lengkap','t'],['nip','NIP / NUPTK','t'],['jenjang','Jenjang','l',['SD','SMP','SMA','SMK']],['mapel','Mata pelajaran / tugas','t'],['kelas','Kelas diampu','t'],['status','Status','l',['PNS','PPPK','GTY','GTT/Honorer','Tendik']],['jabatan','Jabatan / golongan','t']]},
  jadwal:{t:'Jadwal Supervisi',d:'Penyusunan jadwal supervisi per guru.',f:[['guru','Guru','g'],['tanggal','Tanggal','d'],['jam','Jam / jam ke-','t'],['kelas','Kelas','t'],['jenis','Jenis supervisi','l',['Administrasi','Observasi kelas','Asesmen','Pembinaan']],['supervisor','Supervisor','t'],['status','Status','l',['Terjadwal','Selesai','Ditunda']]]},
@@ -81,9 +86,31 @@ const KEYS=Object.keys(M).filter(k=>k!=='pengguna'),SC=['adm','obs','kompetensi'
 const PERAN={admin:'Admin',supervisor:'Supervisor',guru:'Guru'};
 const D={},$=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const cols=k=>M[k].f.filter(x=>x[2]!=='h').map(x=>x[0]);
+const cols=k=>{const c=M[k].f.filter(x=>x[2]!=='h').map(x=>x[0]);return k!=='pengguna'&&c.includes('guru')?[...c,'gid']:c};
 const sf=k=>M[k].f.filter(x=>x[2]==='s');
 const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)};
+
+/* ---------- Tautan guru berbasis ID (data lama berbasis nama tetap terbaca bila namanya unik) ---------- */
+const gOf=r=>{if(r.gid)return r.gid;const m=D.guru.filter(g=>g.nama.trim()===String(r.guru||'').trim());return m.length===1?m[0].id:''};
+const gnm=id=>(D.guru.find(g=>g.id===id)||{}).nama||'';
+const gDisp=(k,r)=>{if(k==='pengguna'){const g=D.guru.find(z=>z.id===r.guru||z.nama===r.guru);return g?g.nama:r.guru}return gnm(gOf(r))||r.guru||''};
+/* ---------- Periode (tahun ajaran & semester) ---------- */
+const taOf=d=>{const m=/^(\d{4})-(\d{2})/.exec(String(d||''));if(!m)return null;const y=+m[1];return +m[2]>=7?{ta:y+'/'+(y+1),sem:'Ganjil'}:{ta:(y-1)+'/'+y,sem:'Genap'}};
+const PD={jadwal:'tanggal',adm:'tanggal',obs:'tanggal',kompetensi:'tanggal',asesmen:'tanggal',refleksi:'tanggal',monev:'tanggal'};
+let PER=(()=>{try{const s=JSON.parse(sessionStorage.getItem('sisupak_per'));if(s)return s}catch(e){}const c=taOf(new Date().toISOString());return{ta:c.ta,sem:c.sem}})();
+const savePer=()=>{try{sessionStorage.setItem('sisupak_per',JSON.stringify(PER))}catch(e){}};
+const perLabel=()=>(PER.ta||'Semua tahun ajaran')+(PER.sem?' '+PER.sem:'');
+function perOf(k,r){
+ if(k==='program'){const m=/(\d{4})\D+(\d{4})/.exec(r.tahun||'');return m?{ta:m[1]+'/'+m[2],sem:r.semester||''}:null}
+ return taOf((PD[k]&&r[PD[k]])||r.dibuat);
+}
+const inPer=(k,r)=>{if(k==='guru'||k==='sekolah')return true;const p=perOf(k,r);return !p||((!PER.ta||p.ta===PER.ta)&&(!PER.sem||!p.sem||p.sem===PER.sem))};
+const P=k=>D[k].filter(r=>inPer(k,r));
+function taOpts(){
+ const set=new Set([taOf(new Date().toISOString()).ta,PER.ta].filter(Boolean));
+ KEYS.forEach(k=>{if(k!=='guru'&&k!=='sekolah')(D[k]||[]).forEach(r=>{const p=perOf(k,r);if(p)set.add(p.ta)})});
+ return '<option value="">Semua tahun ajaran</option>'+[...set].sort().reverse().map(t=>`<option${PER.ta===t?' selected':''}>${t}</option>`).join('');
+}
 
 /* ---------- Lapisan data: Google Sheets (Apps Script) atau mode demo (localStorage) ---------- */
 const GAS=typeof google!=='undefined'&&google.script&&google.script.run;
@@ -94,15 +121,18 @@ function call(act,k,row){
  return new Promise((ok,no)=>{
   if(GAS){const p=k==='pengguna'?(act==='list'?srv('userList',TOKEN):act==='save'?srv('userSave',TOKEN,row):srv('userDel',TOKEN,row)):srv('api',TOKEN,act,k,cols(k),row||{});return p.then(ok,no)}
   let a=[];try{a=JSON.parse(localStorage.getItem('sisupak_'+k)||'[]')}catch(e){}
-  if(act==='save'){row.id=row.id||Math.random().toString(36).slice(2,10);const i=a.findIndex(r=>r.id===row.id);i>-1?a[i]=row:a.push(row)}
+  if(act==='save'){row.id=row.id||Math.random().toString(36).slice(2,10);row.dibuat=row.dibuat||new Date().toISOString();const i=a.findIndex(r=>r.id===row.id);i>-1?a[i]=row:a.push(row)}
   if(act==='del')a=a.filter(r=>r.id!==row.id);
+  if(act==='bulk'){const ids=row.map(o=>{o.id=Math.random().toString(36).slice(2,10);o.dibuat=new Date().toISOString();a.push(o);return o.id});try{localStorage.setItem('sisupak_'+k,JSON.stringify(a))}catch(e){}return ok(ids)}
   try{localStorage.setItem('sisupak_'+k,JSON.stringify(a))}catch(e){}
   ok(act==='list'?a:true);
  });
 }
 async function load(){
  const ks=ME.peran==='admin'?[...KEYS,'pengguna']:KEYS;
- const r=await Promise.all(ks.map(k=>call('list',k)));
+ let r;
+ if(GAS){const defs={};ks.forEach(k=>defs[k]=cols(k));const o=await srv('loadAll',TOKEN,defs);r=ks.map(k=>o[k]||[])}
+ else r=await Promise.all(ks.map(k=>call('list',k)));
  ks.forEach((k,i)=>D[k]=r[i]);
 }
 
@@ -112,10 +142,10 @@ const avg=a=>{a=a.filter(x=>x!=null);return a.length?a.reduce((x,y)=>x+y,0)/a.le
 const pred=p=>p==null?['-','']:p>=86?['Sangat baik','SB']:p>=71?['Baik','B']:p>=56?['Cukup','C']:['Kurang','K'];
 const pill=p=>{const[t,c]=pred(p);return c?`<span class="pill ${c}">${t}</span>`:'-'};
 const fmt=p=>p==null?'-':p.toFixed(1);
-function nilaiGuru(nama){
- const o={};SC.forEach(k=>o[k]=avg(D[k].filter(r=>r.guru===nama).map(r=>pct(r,k))));
+function nilaiGuru(id){
+ const o={};SC.forEach(k=>o[k]=avg(P(k).filter(r=>gOf(r)===id).map(r=>pct(r,k))));
  o.total=avg(SC.map(k=>o[k]));
- let low=[];SC.forEach(k=>D[k].filter(r=>r.guru===nama).forEach(r=>sf(k).forEach(x=>{if(+r[x[0]]>0&&+r[x[0]]<=2)low.push(x[1])})));
+ let low=[];SC.forEach(k=>P(k).filter(r=>gOf(r)===id).forEach(r=>sf(k).forEach(x=>{if(+r[x[0]]>0&&+r[x[0]]<=2)low.push(x[1])})));
  o.low=[...new Set(low)];return o;
 }
 
@@ -123,33 +153,38 @@ function nilaiGuru(nama){
 let cur='dash',q='';
 function nav(){
  $('#nav').style.display='';$('#nav').innerHTML=`<h1>Sistem Informasi Supervisi Akademik Sekolah<small>SD · SMP · SMA/SMK</small></h1>
+ <div class="me" style="margin-top:0">Periode<select id="pta">${taOpts()}</select><select id="psm">${['','Ganjil','Genap'].map(v=>`<option value="${v}"${PER.sem===v?' selected':''}>${v||'Semua semester'}</option>`).join('')}</select></div><hr>
  <a data-v="dash">Analisis hasil supervisi</a><hr>`+KEYS.map(k=>`<a data-v="${k}">${M[k].t}</a>`).join('')+`<hr><a data-v="laporan">Laporan supervisi</a>`+(ME.peran==='admin'?`<a data-v="pengguna">${M.pengguna.t}</a>`:'')+`<hr><div class="me">${esc(ME.nama)}<small>${PERAN[ME.peran]}</small></div><a data-v="sandi">Ubah sandi</a><a data-v="keluar">Keluar</a>
- <div class="mode">${GAS?'Terhubung ke Google Sheets':'Mode demo (data di peramban)'}</div>`;
+ <div class="mode">${GAS?'Terhubung ke Google Sheets':'Mode demo (data di peramban)'} · ${BUILD}</div>`;
  document.querySelectorAll('nav a').forEach(a=>{a.classList.toggle('on',a.dataset.v===cur);a.onclick=()=>{const v=a.dataset.v;if(v==='keluar')return logout();if(v==='sandi')return pwForm();cur=v;q='';render()}});
+ $('#pta').onchange=e=>{PER.ta=e.target.value;savePer();render()};$('#psm').onchange=e=>{PER.sem=e.target.value;savePer();render()};
 }
 function render(){nav();cur==='dash'?dash():cur==='laporan'?laporan():table(cur);scrollTo(0,0)}
 
 /* ---------- Tabel CRUD ---------- */
 function table(k){
- const m=M[k],canE=ME.peran!=='guru'||k==='refleksi',canD=ME.peran!=='guru',show=m.f.filter(x=>!'asph'.includes(x[2])).slice(0,5),isS=sf(k).length>0;
- const rows=D[k].filter(r=>JSON.stringify(Object.values(r)).toLowerCase().includes(q.toLowerCase()));
- $('#main').innerHTML=`<h2>${m.t}</h2><p class="sub">${m.d}</p><div class="card">
- <div class="bar"><input id="q" placeholder="Cari…" value="${esc(q)}">${canE?'<button id="add">Tambah data</button>':''}</div>
+ const m=M[k],canE=k==='sekolah'?ME.peran==='admin':(ME.peran!=='guru'||k==='refleksi'),canD=k==='sekolah'?ME.peran==='admin':ME.peran!=='guru',show=m.f.filter(x=>!'asph'.includes(x[2])).slice(0,5),isS=sf(k).length>0;
+ const rows=P(k).filter(r=>JSON.stringify(Object.values(r)).toLowerCase().includes(q.toLowerCase()));
+ $('#main').innerHTML=`<h2>${m.t}</h2><p class="sub">${m.d}${k==='guru'||k==='sekolah'?'':' · Periode: '+perLabel()}</p><div class="card">
+ <div class="bar"><input id="q" placeholder="Cari…" value="${esc(q)}">${canE&&!(k==='sekolah'&&D.sekolah.length)?'<button id="add">Tambah data</button>':''}${k==='guru'&&canE?'<button class="g" id="imp">Impor dari Excel</button>':''}${k==='guru'&&ME.peran==='admin'?'<button class="g" id="mig">Tautkan data lama ke ID</button>':''}</div>
  <div class="tw"><table><thead><tr>${show.map(x=>`<th>${x[1]}</th>`).join('')}${isS?'<th>Skor</th><th>Predikat</th>':''}<th></th></tr></thead><tbody>
- ${rows.map(r=>`<tr>${show.map(x=>`<td>${esc(r[x[0]])}</td>`).join('')}${isS?`<td>${fmt(pct(r,k))}</td><td>${pill(pct(r,k))}</td>`:''}<td style="white-space:nowrap">${canE?`<button class="s g" data-e="${r.id}">Ubah</button>`:''} ${canD?`<button class="s d" data-x="${r.id}">Hapus</button>`:''}</td></tr>`).join('')||`<tr><td colspan="9">Belum ada data.${canE?' Klik “Tambah data” untuk memulai.':''}</td></tr>`}
+ ${rows.map(r=>`<tr>${show.map(x=>`<td>${esc(x[2]==='g'?gDisp(k,r):r[x[0]])}</td>`).join('')}${isS?`<td>${fmt(pct(r,k))}</td><td>${pill(pct(r,k))}</td>`:''}<td style="white-space:nowrap">${canE?`<button class="s g" data-e="${r.id}">Ubah</button>`:''} ${canD?`<button class="s d" data-x="${r.id}">Hapus</button>`:''}</td></tr>`).join('')||`<tr><td colspan="9">Belum ada data.${canE?' Klik “Tambah data” untuk memulai.':''}</td></tr>`}
  </tbody></table></div></div>`;
  $('#q').oninput=e=>{q=e.target.value;table(k);const i=$('#q');i.focus();i.setSelectionRange(q.length,q.length)};
- if(canE)$('#add').onclick=()=>form(k);
+ if($('#add'))$('#add').onclick=()=>form(k);
+ if($('#imp'))$('#imp').onclick=impGuru;
+ if($('#mig'))$('#mig').onclick=async()=>{if(!GAS)return toast('Hanya diperlukan pada mode Google Sheets');if(!confirm('Tautkan semua data penilaian lama ke ID guru? Baris dengan nama ganda tidak diubah.'))return;try{const n=await srv('migrateGid',TOKEN);await load();toast(n+' baris ditautkan ke ID guru');table('guru')}catch(e){alert(msgOf(e))}};
  document.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>form(k,D[k].find(r=>r.id===b.dataset.e)));
  document.querySelectorAll('[data-x]').forEach(b=>b.onclick=async()=>{if(!confirm('Hapus data ini?'))return;await call('del',k,{id:b.dataset.x});D[k]=D[k].filter(r=>r.id!==b.dataset.x);toast('Data dihapus');table(k)});
 }
 function form(k,r={}){
+ if(k==='program'&&!r.id&&D.sekolah[0])r={...r,pj:r.pj||D.sekolah[0].kepsek,tahun:r.tahun||D.sekolah[0].tahun};
  const opt=(a,v,s)=>a.map(o=>{const[val,lab]=Array.isArray(o)?o:[o,o];return`<option value="${esc(val)}"${val===v?' selected':''}>${esc(lab)}</option>`}).join('');
- const inp=x=>{const[n,l,t,o]=x,v=r[n]||'';
+ const inp=x=>{const[n,l,t,o]=x,v=t==='g'?(k==='pengguna'?(D.guru.find(z=>z.id===r.guru||z.nama===r.guru)||{}).id||'':gOf(r)||''):(r[n]||'');
   return t==='a'?`<textarea name="${n}" rows="3">${esc(v)}</textarea>`
    :t==='d'?`<input type="date" name="${n}" value="${esc(v)}">`
    :t==='l'?`<select name="${n}"><option value="">- pilih -</option>${opt(o,v)}</select>`
-   :t==='p'?`<input type="password" name="${n}" autocomplete="new-password">`:t==='g'?`<select name="${n}"${k==='pengguna'?'':' required'}><option value="">- pilih guru -</option>${opt(D.guru.map(g=>g.nama),v)}</select>`
+   :t==='p'?`<input type="password" name="${n}" autocomplete="new-password">`:t==='g'?`<select name="${n}"${k==='pengguna'?'':' required'}><option value="">- pilih guru -</option>${opt(D.guru.map(g=>[g.id,g.nama+(g.nip?' ('+g.nip+')':'')]),v)}</select>`
    :t==='s'?`<select name="${n}"><option value="">- belum dinilai -</option>${opt(o||SK,v)}</select>`
    :`<input name="${n}" value="${esc(v)}">`};
  $('#modal').innerHTML=`<form><h2>${r.id?'Ubah':'Tambah'} - ${M[k].t}</h2>${k==='adm'?`<div class="f"><label>Isi cepat semua butir dengan nilai</label><select id="qf"><option value="">- pilih nilai -</option>${opt(SA,'')}</select></div>`:''}${k==='rtl'?'<div class="f"><button type="button" class="g" id="gt">Generate otomatis dari hasil supervisi</button><div class="sub" style="margin:4px 0 0">Pilih guru. Kegiatan, bentuk pembinaan, dan target waktu disusun dari butir yang masih rendah. Hasilnya dapat disunting.</div></div>':''}${k==='rekom'?'<div class="f"><button type="button" class="g" id="gr">Generate otomatis dari hasil supervisi</button><div class="sub" style="margin:4px 0 0">Pilih guru. Jika aspek dikosongkan, aplikasi memilih aspek dengan skor terendah. Hasilnya dapat disunting.</div></div>':''}${k==='refleksi'?'<div class="f"><button type="button" class="g" id="gen">Generate otomatis dari hasil supervisi</button><div class="sub" style="margin:4px 0 0">Pilih guru, lalu draf disusun dari skor supervisinya. Draf dapat disunting sebelum disimpan.</div></div>':''}${M[k].f.map(x=>x[2]==='h'?`<h3 class="sec">${x[1]}</h3>`:`<div class="f"><label>${x[1]}</label>${inp(x)}${x[0]==='catatan'&&sf(k).length?'<button type="button" class="g s" id="gc" style="margin-top:6px">Generate catatan otomatis dari penilaian</button>':''}</div>`).join('')}
@@ -162,18 +197,19 @@ function form(k,r={}){
  if(k==='rtl')$('#gt').onclick=genRtl;
  if(k!=='guru'&&!D.guru.length&&M[k].f.some(x=>x[2]==='g'))toast('Isi Data Guru terlebih dulu');
  $('#modal form').onsubmit=async e=>{e.preventDefault();
-  const row={id:r.id};new FormData(e.target).forEach((v,n)=>row[n]=v);
-  try{const id=await call('save',k,row);row.id=row.id||id;if(k==='pengguna')delete row.sandi;const i=D[k].findIndex(z=>z.id===row.id);i>-1?D[k][i]=row:D[k].push(row);
-   $('#modal').classList.remove('on');toast('Data tersimpan');table(k)}catch(er){alert('Gagal menyimpan: '+(er.message||er))}};
+  const row={id:r.id,dibuat:r.dibuat};new FormData(e.target).forEach((v,n)=>row[n]=v);
+  if(k!=='pengguna'&&row.guru){const g=D.guru.find(z=>z.id===row.guru);if(g){row.gid=g.id;row.guru=g.nama}}
+  try{const id=await call('save',k,row);row.id=row.id||id;row.dibuat=row.dibuat||new Date().toISOString();if(k==='pengguna')delete row.sandi;const i=D[k].findIndex(z=>z.id===row.id);i>-1?D[k][i]=row:D[k].push(row);
+   $('#modal').classList.remove('on');toast(inPer(k,row)?'Data tersimpan':'Data tersimpan di periode lain. Ubah filter periode untuk melihatnya.');table(k)}catch(er){alert('Gagal menyimpan: '+(er.message||er))}};
 }
 
 /* ---------- Analisis hasil supervisi ---------- */
 function dash(){
- const G=D.guru.map(g=>({g,n:nilaiGuru(g.nama)}));
+ const G=D.guru.map(g=>({g,n:nilaiGuru(g.id)}));
  const done=G.filter(x=>x.n.total!=null),cnt={SB:0,B:0,C:0,K:0};done.forEach(x=>cnt[pred(x.n.total)[1]]++);
- const rtlSel=D.monev.filter(m=>m.status==='Selesai').length;
- $('#main').innerHTML=`<h2>Analisis Hasil Supervisi</h2><p class="sub">Skor dihitung otomatis dari instrumen (skala 1-4 dikonversi ke 0-100). Predikat: ≥86 sangat baik, 71-85 baik, 56-70 cukup, &lt;56 kurang.</p>
- <div class="grid">${[['Guru & tendik',D.guru.length],['Sudah disupervisi',done.length],['Rata-rata skor',fmt(avg(done.map(x=>x.n.total)))],['Perlu pembinaan (cukup/kurang)',cnt.C+cnt.K],['Tindak lanjut selesai',D.monev.length?rtlSel+' / '+D.monev.length:'-']].map(s=>`<div class="card stat"><b>${s[1]}</b><span>${s[0]}</span></div>`).join('')}</div>
+ const mv=P('monev'),rtlSel=mv.filter(m=>m.status==='Selesai').length;
+ $('#main').innerHTML=`<h2>Analisis Hasil Supervisi</h2><p class="sub"><b>Periode: ${perLabel()}.</b> Skor dihitung otomatis dari instrumen (skala 1-4 dikonversi ke 0-100). Predikat: ≥86 sangat baik, 71-85 baik, 56-70 cukup, &lt;56 kurang.</p>
+ <div class="grid">${[['Guru & tendik',D.guru.length],['Sudah disupervisi',done.length],['Rata-rata skor',fmt(avg(done.map(x=>x.n.total)))],['Perlu pembinaan (cukup/kurang)',cnt.C+cnt.K],['Tindak lanjut selesai',mv.length?rtlSel+' / '+mv.length:'-']].map(s=>`<div class="card stat"><b>${s[1]}</b><span>${s[0]}</span></div>`).join('')}</div>
  <div class="card"><div class="tw"><table><thead><tr><th>Guru</th><th>Administrasi</th><th>Observasi</th><th>Kompetensi</th><th>Asesmen</th><th>Skor akhir</th><th>Predikat</th><th>Aspek perlu diperbaiki</th></tr></thead><tbody>
  ${G.map(({g,n})=>`<tr><td><b>${esc(g.nama)}</b><br><small>${esc(g.mapel)} ${esc(g.jenjang)}</small></td>${SC.map(k=>`<td>${fmt(n[k])}</td>`).join('')}<td><div class="meter"><i style="width:${n.total||0}%"></i></div>${fmt(n.total)}</td><td>${pill(n.total)}</td><td><small>${n.low.slice(0,3).map(esc).join('; ')||'-'}</small></td></tr>`).join('')||'<tr><td colspan="8">Belum ada data guru.</td></tr>'}
  </tbody></table></div></div>`;
@@ -181,15 +217,16 @@ function dash(){
 
 /* ---------- Laporan otomatis ---------- */
 function laporan(){
+ const SS=D.sekolah[0]||{};
  $('#main').innerHTML=`<h2>Laporan Supervisi</h2><p class="sub">Laporan dibuat otomatis dari seluruh data guru yang dipilih.</p>
- <div class="card"><div class="bar"><select id="lg"><option value="">- pilih guru -</option>${D.guru.map(g=>`<option>${esc(g.nama)}</option>`).join('')}</select>
- <input id="lsk" placeholder="Nama sekolah"><input id="lkp" placeholder="Nama kepala sekolah / supervisor"><button id="lp">Cetak / simpan PDF</button></div><div id="lo" class="lap"></div></div>`;
+ <div class="card"><div class="bar"><select id="lg"><option value="">- pilih guru -</option>${D.guru.map(g=>`<option value="${g.id}">${esc(g.nama)}${g.nip?' ('+esc(g.nip)+')':''}</option>`).join('')}</select>
+ <input id="lsk" placeholder="Nama sekolah" value="${esc(SS.nama)}"><input id="lkp" placeholder="Nama supervisor" value="${esc(ME.peran==='guru'?'':ME.nama)}"><button id="lp">Cetak / simpan PDF</button></div><div id="lo" class="lap"></div></div>`;
  const draw=()=>{const nm=$('#lg').value;if(!nm){$('#lo').innerHTML='';return}
-  const g=D.guru.find(x=>x.nama===nm),n=nilaiGuru(nm),by=k=>D[k].filter(r=>r.guru===nm);
+  const g=D.guru.find(x=>x.id===nm),n=nilaiGuru(nm),by=k=>P(k).filter(r=>gOf(r)===nm);
   const T=(k,fs)=>by(k).map(r=>`<tr>${fs.map(f=>`<td>${esc(r[f])}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="9">Belum ada data.</td></tr>`;
   const[pt]=pred(n.total);
-  const nar=n.total==null?'Belum ada hasil penilaian untuk guru ini.':`Berdasarkan hasil supervisi akademik, ${nm} memperoleh skor akhir ${fmt(n.total)} dengan predikat ${pt.toLowerCase()}. Skor per aspek: administrasi ${fmt(n.adm)}, observasi pembelajaran ${fmt(n.obs)}, kompetensi ${fmt(n.kompetensi)}, dan asesmen ${fmt(n.asesmen)}.`+(n.low.length?` Aspek yang masih perlu ditingkatkan: ${n.low.slice(0,5).join('; ').toLowerCase()}.`:' Tidak ditemukan aspek dengan skor rendah.');
-  $('#lo').innerHTML=`<div style="text-align:center"><h2>LAPORAN SUPERVISI AKADEMIK</h2><b>${esc($('#lsk').value)||'Nama Sekolah'}</b></div>
+  const nar=n.total==null?'Belum ada hasil penilaian untuk guru ini.':`Berdasarkan hasil supervisi akademik, ${g.nama} memperoleh skor akhir ${fmt(n.total)} dengan predikat ${pt.toLowerCase()}. Skor per aspek: administrasi ${fmt(n.adm)}, observasi pembelajaran ${fmt(n.obs)}, kompetensi ${fmt(n.kompetensi)}, dan asesmen ${fmt(n.asesmen)}.`+(n.low.length?` Aspek yang masih perlu ditingkatkan: ${n.low.slice(0,5).join('; ').toLowerCase()}.`:' Tidak ditemukan aspek dengan skor rendah.');
+  $('#lo').innerHTML=`<div style="text-align:center"><h2>LAPORAN SUPERVISI AKADEMIK</h2><div>Periode: ${perLabel()}</div><b>${esc($('#lsk').value)||'Nama Sekolah'}</b><br><small>${esc(SS.alamat||'')}${SS.npsn?' · NPSN '+esc(SS.npsn):''}</small></div>
   <h3>A. Identitas guru</h3><table><tr><td>Nama</td><td>${esc(g.nama)}</td><td>NIP/NUPTK</td><td>${esc(g.nip)}</td></tr><tr><td>Mapel/tugas</td><td>${esc(g.mapel)}</td><td>Jenjang / kelas</td><td>${esc(g.jenjang)} / ${esc(g.kelas)}</td></tr></table>
   <h3>B. Ringkasan hasil</h3><table><tr><th>Administrasi</th><th>Observasi</th><th>Kompetensi</th><th>Asesmen</th><th>Skor akhir</th><th>Predikat</th></tr><tr><td>${fmt(n.adm)}</td><td>${fmt(n.obs)}</td><td>${fmt(n.kompetensi)}</td><td>${fmt(n.asesmen)}</td><td><b>${fmt(n.total)}</b></td><td>${pt}</td></tr></table><p>${nar}</p>
   <h3>C. Jadwal supervisi</h3><table><tr><th>Tanggal</th><th>Jenis</th><th>Kelas</th><th>Status</th></tr>${T('jadwal',['tanggal','jenis','kelas','status'])}</table>
@@ -197,7 +234,7 @@ function laporan(){
   <h3>E. Rekomendasi perbaikan</h3><table><tr><th>Aspek</th><th>Temuan</th><th>Rekomendasi</th><th>Prioritas</th></tr>${T('rekom',['aspek','temuan','rekom','prioritas'])}</table>
   <h3>F. Rencana tindak lanjut</h3><table><tr><th>Kegiatan</th><th>Bentuk</th><th>Target</th><th>Penanggung jawab</th></tr>${T('rtl',['kegiatan','bentuk','target','pj'])}</table>
   <h3>G. Monitoring & evaluasi</h3><table><tr><th>Tanggal</th><th>Kegiatan</th><th>Progres %</th><th>Hasil</th><th>Status</th></tr>${T('monev',['tanggal','rtl','progres','hasil','status'])}</table>
-  <table style="margin-top:30px;border:0"><tr><td style="border:0">Guru yang disupervisi<br><br><br><br>${esc(g.nama)}</td><td style="border:0;text-align:right">Supervisor<br><br><br><br>${esc($('#lkp').value)||'.....................'}</td></tr></table>`};
+  <table style="margin-top:30px;border:0"><tr><td style="border:0">Guru yang disupervisi<br><br><br><br><u>${esc(g.nama)}</u><br>${g.nip?'NIP '+esc(g.nip):''}</td><td style="border:0;text-align:center">Supervisor<br><br><br><br><u>${esc($('#lkp').value)||'..................'}</u></td><td style="border:0;text-align:right">Mengetahui,<br>Kepala Sekolah<br><br><br><u>${esc(SS.kepsek)||'..................'}</u><br>${SS.nipkepsek?'NIP '+esc(SS.nipkepsek):''}</td></tr></table>`};
  ['lg','lsk','lkp'].forEach(i=>$('#'+i).oninput=draw);$('#lp').onclick=()=>print();
 }
 
@@ -206,7 +243,7 @@ const REK={kaldik:'Susun kalender pendidikan dan hitung hari efektif belajar',at
 const ASP={'Administrasi':['adm'],'Pelaksanaan pembelajaran':['obs'],'Pedagogik':['kompetensi','Pedagogik'],'Profesional':['kompetensi','Profesional'],'Asesmen':['asesmen']};
 function aspItems(nm,asp){
  const[mod,pre]=ASP[asp],out=[];
- sf(mod).filter(x=>!pre||x[1].startsWith(pre)).forEach(x=>{const v=D[mod].filter(r=>r.guru===nm).map(r=>+r[x[0]]).filter(n=>n>0);if(v.length)out.push({k:x[0],l:x[1],a:v.reduce((a,b)=>a+b,0)/v.length})});
+ sf(mod).filter(x=>!pre||x[1].startsWith(pre)).forEach(x=>{const v=P(mod).filter(r=>gOf(r)===nm).map(r=>+r[x[0]]).filter(n=>n>0);if(v.length)out.push({k:x[0],l:x[1],a:v.reduce((a,b)=>a+b,0)/v.length})});
  return out;
 }
 function genRek(){
@@ -221,7 +258,7 @@ function genRek(){
  const p=sc(it)/4*100,lo=[...it].sort((a,b)=>a.a-b.a).filter(x=>x.a<3).slice(0,4);
  const sh=x=>{const l=x.l.includes(': ')?x.l.split(': ')[1]:x.l;return l[0].toLowerCase()+l.slice(1)+' (skor '+x.a.toFixed(1)+')'};
  f.aspek.value=asp;
- f.temuan.value=`Pada aspek ${asp.toLowerCase()}, ${nm} memperoleh skor ${p.toFixed(1)} dengan predikat ${pred(p)[0].toLowerCase()}. `+(lo.length?`Butir yang masih rendah: ${lo.map(sh).join('; ')}.`:'Seluruh butir berada pada skor baik.');
+ f.temuan.value=`Pada aspek ${asp.toLowerCase()}, ${gnm(nm)} memperoleh skor ${p.toFixed(1)} dengan predikat ${pred(p)[0].toLowerCase()}. `+(lo.length?`Butir yang masih rendah: ${lo.map(sh).join('; ')}.`:'Seluruh butir berada pada skor baik.');
  f.rekom.value=lo.length?lo.map((x,i)=>`${i+1}. ${REK[x.k]||'Lakukan pembinaan pada butir ini'}.`).join('\n')+'\nLakukan supervisi ulang setelah perbaikan untuk memantau perkembangan.':'Pertahankan kualitas yang sudah baik dan bagikan praktik baik kepada rekan guru melalui KKG/MGMP.';
  f.prioritas.value=!lo.length?'Rendah':p<56?'Tinggi':p<71?'Sedang':'Rendah';
  toast('Rekomendasi dibuat. Silakan sunting bila perlu.');
@@ -256,7 +293,7 @@ function genRef(){
  const f=$('#modal form'),nm=f.guru.value;
  if(!nm)return toast('Pilih guru terlebih dulu');
  const it=[];
- SC.forEach(k=>sf(k).forEach(x=>{const v=D[k].filter(r=>r.guru===nm).map(r=>+r[x[0]]).filter(n=>n>0);if(v.length)it.push({l:x[1],a:v.reduce((a,b)=>a+b,0)/v.length})}));
+ SC.forEach(k=>sf(k).forEach(x=>{const v=P(k).filter(r=>gOf(r)===nm).map(r=>+r[x[0]]).filter(n=>n>0);if(v.length)it.push({l:x[1],a:v.reduce((a,b)=>a+b,0)/v.length})}));
  if(!it.length)return toast('Belum ada hasil supervisi untuk guru ini');
  if(['kuat','lemah','rguru','rsup'].some(n=>f[n].value.trim())&&!confirm('Isi kolom refleksi yang ada akan diganti. Lanjutkan?'))return;
  const hi=[...it].sort((a,b)=>b.a-a.a).filter(x=>x.a>=3).slice(0,4),lo=[...it].sort((a,b)=>a.a-b.a).filter(x=>x.a<3).slice(0,4);
@@ -268,6 +305,66 @@ function genRef(){
  f.rguru.value=`Setelah mengikuti supervisi, saya menyadari bahwa ${hi.length?'pembelajaran saya sudah baik pada '+sh(hi)+'.':'saya masih perlu memperkuat banyak aspek pembelajaran.'} ${lo.length?'Saya perlu meningkatkan '+sh(lo)+'. Saya akan menerapkan masukan supervisor, berdiskusi dengan rekan sejawat, dan mencoba perbaikan pada pembelajaran berikutnya.':'Saya akan mempertahankan kualitas ini dan terus berinovasi dalam pembelajaran.'}`;
  if(ME.peran!=='guru')f.rsup.value=`Hasil supervisi menunjukkan skor akhir ${fmt(n.total)} dengan predikat ${pt}. ${hi.length?'Guru menunjukkan kekuatan pada '+sh(hi)+'. ':''}${lo.length?'Aspek yang perlu dibina: '+sh(lo)+'. Disarankan pendampingan, pelatihan terkait, dan supervisi ulang untuk memantau perbaikan.':'Guru dapat menjadi rekan berbagi praktik baik bagi guru lain.'}`;
  toast('Draf refleksi dibuat. Silakan sunting bila perlu.');
+}
+/* ---------- Impor guru dari Excel/CSV ---------- */
+function loadXLSX(){return window.XLSX?Promise.resolve():new Promise((ok,no)=>{const e=document.createElement('script');e.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';e.onload=ok;e.onerror=()=>no(new Error('Pustaka Excel gagal dimuat. Simpan file sebagai CSV, atau tempel datanya.'));document.head.appendChild(e)})}
+function parseDel(t){
+ t=t.replace(/^\uFEFF/,'');const l1=t.split(/\r?\n/)[0],d=l1.includes('\t')?'\t':(l1.split(';').length>l1.split(',').length?';':',');
+ const out=[];let row=[],c='',q=false;
+ for(let i=0;i<t.length;i++){const ch=t[i];
+  if(q){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}
+  else if(ch==='"')q=true;
+  else if(ch===d){row.push(c);c=''}
+  else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;row.push(c);out.push(row);row=[];c=''}
+  else c+=ch}
+ if(c||row.length){row.push(c);out.push(row)}
+ return out;
+}
+async function readSrc(){
+ const fl=$('#fl').files[0];
+ if(fl){
+  if(/\.csv$/i.test(fl.name))return parseDel(await fl.text());
+  await loadXLSX();const wb=XLSX.read(await fl.arrayBuffer(),{type:'array'});
+  return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
+ }
+ const t=$('#pt').value;if(!t.trim())throw new Error('Pilih file atau tempel data terlebih dulu.');return parseDel(t);
+}
+function buildImp(A){
+ const hk=(A[0]||[]).map(h=>{h=String(h).toLowerCase();return /^nama/.test(h)?'nama':/nip|nuptk/.test(h)?'nip':/jenjang/.test(h)?'jenjang':/mapel|mata pelajaran|tugas/.test(h)?'mapel':/kelas/.test(h)?'kelas':/status/.test(h)?'status':/jabatan|golongan/.test(h)?'jabatan':''});
+ if(!hk.includes('nama'))throw new Error('Kolom "Nama" tidak ditemukan pada baris pertama.');
+ const fo=n=>M.guru.f.find(x=>x[0]===n)[3],nm=(v,a)=>a.find(o=>o.toLowerCase()===v.toLowerCase())||v;
+ const ni=new Set(D.guru.filter(g=>g.nip).map(g=>g.nip.trim())),nA=new Set(D.guru.map(g=>g.nama.trim().toLowerCase())),n0=new Set(D.guru.filter(g=>!g.nip).map(g=>g.nama.trim().toLowerCase()));
+ const ok=[];let dup=0,kosong=0;
+ A.slice(1).forEach(r=>{
+  if(!r.some(c=>String(c).trim()))return;
+  const o={};hk.forEach((k,i)=>{if(k&&!o[k])o[k]=String(r[i]??'').trim()});
+  if(!o.nama){kosong++;return}
+  if(o.jenjang)o.jenjang=nm(o.jenjang,fo('jenjang'));if(o.status)o.status=nm(o.status,fo('status'));
+  const ln=o.nama.toLowerCase();
+  if(o.nip?(ni.has(o.nip)||n0.has(ln)):nA.has(ln)){dup++;return}
+  if(o.nip)ni.add(o.nip);else n0.add(ln);nA.add(ln);ok.push(o)});
+ return{ok,dup,kosong};
+}
+function impGuru(){
+ $('#modal').innerHTML=`<form><h2>Impor Data Guru dari Excel</h2>
+ <p class="sub">Kolom yang dikenali: Nama (wajib), NIP/NUPTK, Jenjang, Mapel/Tugas, Kelas, Status, Jabatan. Baris pertama berisi judul kolom. Guru yang NIP-nya sudah terdaftar dilewati (jika tanpa NIP, dicocokkan dengan nama). Dua guru bernama sama dengan NIP berbeda boleh diimpor.</p>
+ <div class="f"><label>Pilih file (.xlsx, .xls, .csv)</label><input type="file" id="fl" accept=".xlsx,.xls,.csv"></div>
+ <div class="f"><label>Atau tempel data dari Excel (termasuk baris judul)</label><textarea id="pt" rows="4"></textarea><button type="button" class="g s" id="ex" style="margin-top:6px">Tampilkan contoh format</button></div>
+ <div class="bar"><button type="button" id="pv">Pratinjau</button><button type="button" class="g" id="cx">Tutup</button></div><div id="pvo"></div></form>`;
+ $('#modal').classList.add('on');$('#cx').onclick=()=>$('#modal').classList.remove('on');
+ $('#ex').onclick=()=>{$('#pt').value='Nama\tNIP/NUPTK\tJenjang\tMapel/Tugas\tKelas\tStatus\tJabatan\nSiti Aminah, S.Pd\t198501012010012001\tSD\tGuru Kelas\t4A\tPNS\tGuru Ahli Pertama\nBudi Santoso, S.Pd\t\tSMP\tMatematika\t7-9\tGTY\t'};
+ $('#pv').onclick=async()=>{
+  const o=$('#pvo');o.innerHTML='Membaca data…';
+  try{
+   const R=buildImp(await readSrc());
+   if(!R.ok.length){o.innerHTML=`<p class="err">Tidak ada guru baru untuk diimpor. Dilewati: ${R.dup} sudah terdaftar, ${R.kosong} tanpa nama.</p>`;return}
+   o.innerHTML=`<p><b>${R.ok.length} guru siap diimpor.</b> Dilewati: ${R.dup} sudah terdaftar, ${R.kosong} tanpa nama.</p><div class="tw"><table><thead><tr><th>Nama</th><th>NIP</th><th>Jenjang</th><th>Mapel</th><th>Status</th></tr></thead><tbody>${R.ok.slice(0,8).map(g=>`<tr><td>${esc(g.nama)}</td><td>${esc(g.nip)}</td><td>${esc(g.jenjang)}</td><td>${esc(g.mapel)}</td><td>${esc(g.status)}</td></tr>`).join('')}</tbody></table></div>${R.ok.length>8?`<p class="sub">…dan ${R.ok.length-8} lainnya.</p>`:''}<div class="bar"><button type="button" id="go">Impor ${R.ok.length} guru</button></div>`;
+   $('#go').onclick=async e=>{e.target.disabled=true;e.target.textContent='Mengimpor…';
+    try{const ids=await call('bulk','guru',R.ok);R.ok.forEach((g,i)=>D.guru.push({...g,id:ids[i]||Math.random().toString(36).slice(2,10),dibuat:new Date().toISOString()}));
+     $('#modal').classList.remove('on');toast(R.ok.length+' guru berhasil diimpor');table('guru')}
+    catch(er){e.target.disabled=false;e.target.textContent='Coba lagi';alert('Gagal mengimpor: '+msgOf(er))}};
+  }catch(er){o.innerHTML=`<p class="err">${esc(msgOf(er))}</p>`}
+ };
 }
 const msgOf=e=>String(e.message||e).replace(/^(Error|Exception):\s*/,'');
 function authView(setup,msg){
@@ -283,7 +380,8 @@ function authView(setup,msg){
 async function start(r){
  TOKEN=r.token;ME=r.me;try{sessionStorage.setItem('sisupak_t',TOKEN)}catch(x){}
  $('#main').innerHTML='<p>Memuat data…</p>';
- try{await load();cur='dash';render()}catch(e){$('#main').innerHTML='<div class="card">Gagal memuat data: '+esc(msgOf(e))+'</div>'}
+ const tm=setTimeout(()=>{if($('#main').innerHTML.includes('Memuat data'))$('#main').innerHTML+='<p class="sub">Masih memuat. Saat pertama kali dibuka, aplikasi membuat sheet otomatis dan bisa memakan waktu hingga satu menit. Jika tetap macet, muat ulang halaman.</p>'},12000);
+ try{await load();clearTimeout(tm);cur='dash';render();if(ME.peran==='admin'&&!D.sekolah.length)setTimeout(()=>toast('Lengkapi menu Identitas Sekolah agar nama kepala sekolah terisi otomatis'),400)}catch(e){$('#main').innerHTML='<div class="card">Gagal memuat data: '+esc(msgOf(e))+'</div>'}
 }
 async function logout(){try{await srv('logout',TOKEN)}catch(e){}TOKEN='';ME=null;try{sessionStorage.removeItem('sisupak_t')}catch(x){}authView(false)}
 function pwForm(){
@@ -292,9 +390,10 @@ function pwForm(){
  $('#modal form').onsubmit=async e=>{e.preventDefault();try{await srv('changePw',TOKEN,e.target.o.value,e.target.n.value);$('#modal').classList.remove('on');toast('Sandi diubah')}catch(er){alert(msgOf(er))}};
 }
 (async()=>{
+ $('#main').innerHTML='<p>Memuat data…</p><p class="sub">Build '+BUILD+' · '+(GAS?'menghubungi server…':'mode demo (tanpa server)')+'</p>';
  if(!GAS)return start({token:'demo',me:{nama:'Pengguna demo',peran:'admin',username:'demo',guru:''}});
  let t='';try{t=sessionStorage.getItem('sisupak_t')||''}catch(x){}
- try{const s=await srv('status',t);s.setup?authView(true):s.me?start({token:t,me:s.me}):authView(false)}
+ try{const s=await Promise.race([srv('status',t),new Promise((_,no)=>setTimeout(()=>no(new Error('Server tidak merespons dalam 20 detik. Muat ulang halaman. Jika berulang, periksa pengaturan Deploy: Execute as Me dan akses Anyone.')),20000))]);s.setup?authView(true):s.me?start({token:t,me:s.me}):authView(false)}
  catch(e){$('#main').innerHTML='<div class="card">Gagal terhubung: '+esc(msgOf(e))+'</div>'}
 })();
 </script>
